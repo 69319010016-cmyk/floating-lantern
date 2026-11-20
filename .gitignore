@@ -1,0 +1,17 @@
+# Auto-generated base64 art file
+phra-aphai-art.js
+
+# Logs
+*.log
+npm-debug.log*
+
+# Dependencies
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor dirs
+.vscode/
+.idea/

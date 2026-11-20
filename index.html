@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ประกวดกระทงออนไลน์ 3D - 3D Loy Krathong Contest & Voting</title>
+  
+  <!-- PWA & Mobile Meta Tags -->
+  <meta name="theme-color" content="#061224">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="เว็บแอป 3D ประกวดและโหวตกระทงออนไลน์คืนวันเพ็ญ พร้อมฉากวัด เจดีย์ทอง เรือนไทย และแม่น้ำ 3 มิติ">
+
+  <!-- Thai Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Charm:wght@400;700&family=Mali:wght@300;400;600&family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+  
+  <!-- Three.js & OrbitControls from trusted CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <!-- Canvas Confetti for Celebration -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- 3D WebGL Canvas Container -->
+  <div id="canvas3d-container"></div>
+
+  <!-- Loading Screen -->
+  <div id="loadingScreen" class="loading-overlay">
+    <div class="loading-box">
+      <div class="loading-lantern">🪔</div>
+      <h2>กำลังเนรมิตฉาก 3D วันเพ็ญ...</h2>
+      <p>แม่น้ำ • เจดีย์ทอง • วัด • เรือนไทย • ซุ้มพระอภัยมณี</p>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progressFill"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Navigation & Live Ticker -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="brand-badge">
+        <span class="brand-icon">🌕</span>
+        <div>
+          <h1 id="appTitle">ประกวดกระทง 3D</h1>
+          <span class="sub-title">Loy Krathong Online Contest & Vote</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Ticker: Recent contestant or vote -->
+    <div class="live-ticker">
+      <span class="ticker-pill">🔥 กำลังโหวต:</span>
+      <span class="ticker-msg" id="tickerMsg">แตะที่กระทงในแม่น้ำ 3D เพื่อดูรูปและโหวตคะแนน</span>
+    </div>
+
+    <div class="header-right">
+      <!-- Sound toggle -->
+      <button id="audioToggleBtn" class="glass-btn audio-btn" title="เปิด/ปิดเสียงบรรยากาศ">
+        <span id="audioIcon">🌊</span>
+      </button>
+
+      <!-- Leaderboard Button -->
+      <button id="leaderboardBtn" class="glass-btn" title="ตารางอันดับคะแนนโหวต">
+        <span>🏆</span>
+        <span class="btn-text">อันดับโหวต</span>
+      </button>
+
+      <!-- Language Toggle -->
+      <button id="langToggleBtn" class="glass-btn lang-btn" title="เปลี่ยนภาษา / Switch Language">
+        <span id="langTH" class="active">TH</span> | <span id="langEN">EN</span>
+      </button>
+
+      <!-- Help / Guide Button -->
+      <button id="helpBtn" class="glass-btn" title="วิธีใช้งาน">
+        <span>❓</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 3D Camera Controls Hint (Fades out automatically) -->
+  <div id="cameraHint" class="camera-hint-badge">
+    <span>🖐️ หมุน 360° | 🔍 ซูมเข้า-ออก | 🪔 แตะกระทงเพื่อโหวต</span>
+  </div>
+
+  <!-- Interactive 3D Hover Tooltip -->
+  <div id="krathongHoverTooltip" class="krathong-tooltip" style="display:none;"></div>
+
+  <!-- Floating Floating Action Bar (Bottom Deck) -->
+  <div class="bottom-action-bar">
+    <div class="bar-inner">
+      
+      <!-- Primary Action: Submit Krathong / Take Photo -->
+      <button id="openSubmitModalBtn" class="primary-contest-btn">
+        <span class="btn-glow"></span>
+        <span class="btn-icon">📸</span>
+        <div class="btn-content">
+          <span class="main-label">ถ่ายรูปส่งกระทงประกวด</span>
+          <span class="sub-label">ร่วมลอยกระทง 3D & ชิงคะแนนโหวต</span>
+        </div>
+        <span class="btn-sparkle">✧</span>
+      </button>
+
+      <!-- Quick Reset View Button -->
+      <button id="resetViewBtn" class="compact-dock-btn" title="รีเซ็ตมุมกล้อง">
+        <span>🎯</span>
+        <span class="dock-btn-text">มุมมองหลัก</span>
+      </button>
+
+      <!-- Focus on Krathongs Button -->
+      <button id="focusRiverBtn" class="compact-dock-btn" title="ชมวิวผิวน้ำใกล้ๆ">
+        <span>🌊</span>
+        <span class="dock-btn-text">ชมผืนน้ำ</span>
+      </button>
+
+      <!-- Focus on Temple Arch (พระอภัยมณี & นางเงือก) -->
+      <button id="focusArchBtn" class="compact-dock-btn" title="ซูมไปที่ซุ้มพระอภัยมณีและนางเงือก">
+        <span>🪈</span>
+        <span class="dock-btn-text">ซุ้มประตูวัด</span>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- ============================================================
+       MODAL 1: SUBMIT CONTESTANT (ถ่ายรูป + กรอกชื่อ + ปล่อยกระทง 3D)
+       ============================================================ -->
+  <div id="submitModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-window">
+      <div class="modal-head">
+        <div class="modal-title-group">
+          <span class="modal-icon">📸</span>
+          <div>
+            <h2>ส่งกระทงเข้าประกวดออนไลน์</h2>
+            <span class="modal-sub">ถ่ายรูปเซลฟี่ของคุณ แนบคำอธิษฐาน และปล่อยกระทง 3D สู่แม่น้ำ</span>
+          </div>
+        </div>
+        <button id="closeSubmitModalBtn" class="close-btn">✕</button>
+      </div>
+
+      <div class="modal-content">
+        <!-- Photo Section: Live Camera & Preview -->
+        <div class="photo-capture-card">
+          <div class="photo-preview-wrap">
+            <img id="photoPreview" src="phra-aphai-ngueak.png" alt="ตัวอย่างรูปถ่าย" style="display:none;">
+            <div id="photoPlaceholder" class="photo-placeholder">
+              <span>📷</span>
+              <p>ยังไม่มีรูปถ่าย</p>
+            </div>
+          </div>
+
+          <div class="photo-actions">
+            <!-- Hidden native file input with camera capture support -->
+            <input type="file" id="cameraInput" accept="image/*" capture="user" style="display:none;">
+            
+            <button id="capturePhotoBtn" class="photo-btn primary-photo-btn">
+              <span>📸</span>
+              <span>ถ่ายรูปเซลฟี่ / แนบรูป</span>
+            </button>
+            <button id="removePhotoBtn" class="photo-btn" style="display:none;">
+              <span>🗑️</span>
+              <span>ลบรูป</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Contestant Info Inputs -->
+        <div class="form-group">
+          <label for="contestantNameInput">
+            <span>👤 ชื่อผู้เข้าประกวด / ตัวแทน <strong class="req">*</strong></span>
+          </label>
+          <input type="text" id="contestantNameInput" maxlength="40" placeholder="เช่น คุณปิยะพร (เชียงใหม่)">
+        </div>
+
+        <div class="form-group">
+          <label for="contestantWishInput">
+            <span>🪔 คำอธิษฐานวันเพ็ญ <strong class="req">*</strong></span>
+          </label>
+          <textarea id="contestantWishInput" rows="2" maxlength="120" placeholder="ขอขมาพระแม่คงคา และขอพรให้ครอบครัวร่มเย็นเป็นสุข..."></textarea>
+        </div>
+
+        <!-- Preset Wish Chips -->
+        <div class="quick-wishes">
+          <span class="quick-title">คำอธิษฐานสำเร็จรูป:</span>
+          <div class="chips-list">
+            <button class="wish-chip" data-wish="ขอขมาพระแม่คงคา ขอพรให้ชีวิตสงบสุขร่มเย็นดั่งสายน้ำ">🌊 ขอขมาคงคา</button>
+            <button class="wish-chip" data-wish="ขอให้ประสบความสำเร็จในหน้าที่การงาน ค้าขายร่ำรวย โชคลาภพูนทวี">✨ งานเงินรุ่งเรือง</button>
+            <button class="wish-chip" data-wish="ขอให้สุขภาพแข็งแรง ปราศจากโรคภัยไข้เจ็บ มีพลังกายพลังใจ">🌿 สุขภาพแข็งแรง</button>
+            <button class="wish-chip" data-wish="ลอยเคราะห์ลอยโศก ให้หมดสิ้นไปกับสายน้ำในคืนเพ็ญ">🌙 ลอยเคราะห์โศก</button>
+          </div>
+        </div>
+
+        <!-- 3D Krathong Design Selector -->
+        <div class="form-group">
+          <label><span>🎨 เลือกลวดลายกระทง 3D</span></label>
+          <div class="krathong-type-grid" id="krathongTypeGrid">
+            <button class="type-card active" data-style="emerald">
+              <span class="type-icon">🌿</span>
+              <span class="type-name">ใบตองมรกต</span>
+              <span class="type-desc">กลีบเขียวขอบทอง</span>
+            </button>
+            <button class="type-card" data-style="gold">
+              <span class="type-icon">👑</span>
+              <span class="type-name">บัวทองคำ</span>
+              <span class="type-desc">ทองคำเรืองรอง</span>
+            </button>
+            <button class="type-card" data-style="lotus">
+              <span class="type-icon">🌸</span>
+              <span class="type-name">บัวชมพูสวรรค์</span>
+              <span class="type-desc">กลีบบัวหลวงวิจิตร</span>
+            </button>
+            <button class="type-card" data-style="sapphire">
+              <span class="type-icon">💎</span>
+              <span class="type-name">แก้วสมุทร</span>
+              <span class="type-desc">ประกายฟ้านิลกาฬ</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-foot">
+        <button id="cancelSubmitBtn" class="cancel-btn">ยกเลิก</button>
+        <button id="confirmSubmitBtn" class="confirm-submit-btn">
+          <span>🪔</span>
+          <span>สร้างกระทงและปล่อยลงน้ำ</span>
+          <span>✧</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       MODAL 2: VOTE POPUP (แตะกระทงแล้วขึ้นรูป + ข้อมูล + ปุ่มโหวต)
+       ============================================================ -->
+  <div id="voteModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-window vote-modal-window">
+      <div class="modal-head">
+        <div class="modal-title-group">
+          <span class="modal-icon">🪔</span>
+          <div>
+            <h2>ข้อมูลกระทงเข้าประกวด</h2>
+            <span class="modal-sub" id="voteModalSub">แตะเพื่อร่วมโหวตให้คะแนน</span>
+          </div>
+        </div>
+        <button id="closeVoteModalBtn" class="close-btn">✕</button>
+      </div>
+
+      <div class="modal-content vote-modal-content">
+        <!-- Contestant Big Avatar/Photo -->
+        <div class="contestant-photo-display">
+          <img id="voteModalPhoto" src="phra-aphai-ngueak.png" alt="รูปผู้เข้าประกวด">
+          <div class="vote-badge-overlay">
+            <span class="badge-num" id="voteModalRank">#1</span>
+          </div>
+        </div>
+
+        <div class="contestant-details">
+          <h3 id="voteModalName" class="contestant-title">คุณสมชาย ใจดี (เชียงใหม่)</h3>
+          <p id="voteModalWish" class="contestant-wish">"ขอให้ครอบครัวร่มเย็นเป็นสุข สุขภาพแข็งแรงดั่งสายน้ำใส"</p>
+          
+          <div class="contestant-tags">
+            <span class="tag" id="voteModalDesign">🌿 กระทงใบตองมรกต</span>
+            <span class="tag-status">🌊 ลอยอยู่ในแม่น้ำ 3D</span>
+          </div>
+
+          <!-- Vote Score Display -->
+          <div class="score-box">
+            <span class="score-label">คะแนนโหวตปัจจุบัน:</span>
+            <span class="score-val" id="voteModalScore">0</span>
+            <span class="score-unit">คะแนน</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-foot vote-modal-foot">
+        <button id="voteBtn" class="vote-action-btn">
+          <span class="heart-icon">❤️</span>
+          <span id="voteBtnLabel">โหวตให้กระทงนี้</span>
+          <span class="vote-sparkle">✨</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       MODAL 3: LEADERBOARD (ตารางคะแนนยอดนิยม)
+       ============================================================ -->
+  <div id="leaderboardModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-window">
+      <div class="modal-head">
+        <div class="modal-title-group">
+          <span class="modal-icon">🏆</span>
+          <div>
+            <h2>อันดับคะแนนโหวตสูงสุด</h2>
+            <span class="modal-sub">กระทงยอดนิยมในงานประกวดคืนวันเพ็ญ</span>
+          </div>
+        </div>
+        <button id="closeLeaderboardBtn" class="close-btn">✕</button>
+      </div>
+
+      <div class="modal-content">
+        <div class="leaderboard-list" id="leaderboardList">
+          <!-- Populated dynamically by script.js -->
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <button id="closeLeaderboardFooterBtn" class="confirm-submit-btn">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       MODAL 4: HELP & GUIDE
+       ============================================================ -->
+  <div id="helpModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-window">
+      <div class="modal-head">
+        <div class="modal-title-group">
+          <span class="modal-icon">📜</span>
+          <div>
+            <h2>วิธีใช้งานเว็บแอป 3D</h2>
+            <span class="modal-sub">สัมผัสบรรยากาศงานลอยกระทง 3 มิติ</span>
+          </div>
+        </div>
+        <button id="closeHelpBtn" class="close-btn">✕</button>
+      </div>
+
+      <div class="modal-content help-content">
+        <div class="help-step">
+          <span class="step-num">1</span>
+          <div>
+            <h4>หมุนและซูมกล้อง 3D ได้อิสระ</h4>
+            <p>ลากหน้าจอเพื่อหมุนมุมกล้อง 360 องศา บีบนิ้วหรือหมุน Scroll Mouse เพื่อซูมเข้าดูรายละเอียดกระทง หรือซูมออกชมทัศนียภาพวัดและเจดีย์ทอง</p>
+          </div>
+        </div>
+
+        <div class="help-step">
+          <span class="step-num">2</span>
+          <div>
+            <h4>แตะที่กระทงในแม่น้ำเพื่อโหวต</h4>
+            <p>ในแม่น้ำมีกระทงลอยอยู่ 20+ ดวง แตะที่กระทงดวงใดก็ได้เพื่อเปิดดูรูปถ่ายและคำอธิษฐาน พร้อมกดปุ่มโหวตคะแนน</p>
+          </div>
+        </div>
+
+        <div class="help-step">
+          <span class="step-num">3</span>
+          <div>
+            <h4>ถ่ายรูปส่งกระทงเข้าประกวด</h4>
+            <p>กดปุ่ม <strong>"📸 ถ่ายรูปส่งกระทงประกวด"</strong> เพื่อถ่ายเซลฟี่หรือแนบรูป กรอกชื่อและคำอธิษฐาน กระทง 3D ของคุณจะลอยลงสู่แม่น้ำทันที</p>
+          </div>
+        </div>
+
+        <div class="help-step">
+          <span class="step-num">4</span>
+          <div>
+            <h4>ชมซุ้มพระอภัยมณีและนางเงือก</h4>
+            <p>บริเวณทางเข้างานวัด ประดับด้วยภาพจิตรกรรมไทยแท้ <strong>พระอภัยมณีและนางเงือก</strong> เรืองแสงสีทองอร่ามต้อนรับผู้คน 20 คนที่เดินชมงาน</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <button id="closeHelpFooterBtn" class="confirm-submit-btn">เข้าใจแล้ว</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="phra-aphai-art.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
